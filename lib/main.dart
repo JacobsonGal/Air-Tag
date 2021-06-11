@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:http/http.dart';
+import 'dart:io';
 import 'src/locations.dart' as locations;
 
 void main() {
@@ -18,10 +20,11 @@ class _MyAppState extends State<MyApp> {
       TextStyle(fontSize: 30, fontWeight: FontWeight.bold);
   static const List<Widget> _widgetOptions = <Widget>[
     GMAP(),
-    Text(
-      'Index 1: List',
-      style: optionStyle,
-    ),
+    BodyWidget(),
+    // Text(
+    //   'Index 1: List',
+    //   style: optionStyle,
+    // ),
   ];
   void _onItemTapped(int index) {
     setState(() {
@@ -128,5 +131,61 @@ class _GMAPState extends State<GMAP> {
       ),
       markers: _markers.values.toSet(),
     );
+  }
+}
+
+
+class BodyWidget extends StatefulWidget {
+  const BodyWidget({Key? key}) : super(key: key);
+
+  @override
+  BodyWidgetState createState() => BodyWidgetState();
+}
+
+class BodyWidgetState extends State<BodyWidget> {
+  String serverResponse = 'Server response';
+
+  @override
+  Widget build(BuildContext context) {
+
+    return Padding(
+      padding: const EdgeInsets.all(32.0),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: SizedBox(
+          width: 200,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              ElevatedButton(
+                child: Text('Send request to server'),
+                onPressed: () {
+                  _makeGetRequest();
+                },
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(serverResponse),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  _makeGetRequest() async {
+    final url = Uri.parse(_localhost());
+    Response response = await get(url);
+    setState(() {
+      serverResponse = response.body;
+    });
+  }
+
+  String _localhost() {
+    if (Platform.isAndroid)
+      return 'http://10.0.2.2:9000';
+    else // for iOS simulator
+      return 'http://localhost:9000';
   }
 }
