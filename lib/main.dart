@@ -165,7 +165,7 @@ class BodyWidgetState extends State<BodyWidget> {
               ),
               Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: Text(serverResponse),
+                child: Text(serverResponse)
               ),
             ],
           ),
@@ -184,8 +184,8 @@ class BodyWidgetState extends State<BodyWidget> {
 
   String _localhost() {
     if (Platform.isAndroid)
-      return 'http://10.0.2.2:9000';
-    else // for iOS simulator
-      return 'http://localhost:9000';
+      return 'http://10.0.2.2:8000';
+    else // for iOS simulator{}
+      return 'http://localhost:8000/graphql?query={getPost{id,title}}';
   }
 }
