@@ -15,6 +15,7 @@ dependencies:
   http: ^0.13.1
   json_serializable: ^4.1.0
   web_socket_channel: ^2.1.0
+  flutter_speed_dial: ^3.0.5
 
 dev_dependencies:
   flutter_test:
