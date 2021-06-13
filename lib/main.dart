@@ -1,3 +1,5 @@
+import 'dart:ffi';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart';
@@ -13,7 +15,7 @@ class MyApp extends StatefulWidget {
   _MyAppState createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> { 
+class _MyAppState extends State<MyApp> {
   final appTitle = "AirTag";
   int _selectedIndex = 0;
   static const TextStyle optionStyle =
@@ -31,6 +33,8 @@ class _MyAppState extends State<MyApp> {
       _selectedIndex = index;
     });
   }
+
+  void _getLocation() {}
 
   @override
   Widget build(BuildContext context) {
@@ -102,38 +106,90 @@ class GMAP extends StatefulWidget {
 
 class _GMAPState extends State<GMAP> {
   final Map<String, Marker> _markers = {};
-  final LatLng _center = const LatLng(32.0853, 34.7818);
+  String serverResponse = 'Server response';
+  // LatLng _center = const LatLng(0,0);
+  LatLng _center = const LatLng(32.0853, 34.7818);
   Future<void> _onMapCreated(GoogleMapController controller) async {
     final airTags = await locations.getGoogleOffices();
+    // setState(() {
+    //   _markers.clear();
+    //   for (final tag in airTags.offices) {
+    //     final marker = Marker(
+    //       markerId: MarkerId(tag.name),
+    //       position: LatLng(tag.lat, tag.lng),
+    //       infoWindow: InfoWindow(
+    //         title: tag.name,
+    //         snippet: tag.address,
+    //       ),
+    //     );
+    //     _markers[tag.name] = marker;
+    //   }
+    // });
+  }
+
+  _makeGetRequest() async {
+    final url = Uri.parse(_localhost());
+    Response response = await get(url);
+    Map<String, dynamic> data = jsonDecode(response.body);
+    var location = data['data']['location'];
+
+    String name = location['name'];
+    String address = location['address'];
+    var lat = location['lat'];
+    var lng = location['lng'];
+
     setState(() {
       _markers.clear();
-      for (final tag in airTags.offices) {
         final marker = Marker(
-          markerId: MarkerId(tag.name),
-          position: LatLng(tag.lat, tag.lng),
+          markerId: MarkerId(name),
+          position: LatLng(lat, lng),
           infoWindow: InfoWindow(
-            title: tag.name,
-            snippet: tag.address,
+            title: name,
+            snippet: address,
           ),
         );
-        _markers[tag.name] = marker;
-      }
+        _markers[name] = marker;
     });
+  }
+
+  String _localhost() {
+    if (Platform.isAndroid)
+      return 'http://10.0.2.2:8000';
+    else // for iOS simulator{}
+      return 'http://localhost:8000/graphql?query={location{name,address,lat,lng}}';
   }
 
   @override
   Widget build(BuildContext context) {
-    return GoogleMap(
-      onMapCreated: _onMapCreated,
-      initialCameraPosition: CameraPosition(
-        target: _center,
-        zoom: 10,
+    return Scaffold(
+      body: Center(
+        child: GoogleMap(
+          onMapCreated: _onMapCreated,
+          initialCameraPosition: CameraPosition(
+            target: _center,
+            zoom: 10,
+          ),
+          markers: _markers.values.toSet(),
+        ),
       ),
-      markers: _markers.values.toSet(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _makeGetRequest();
+        },
+        child: const Icon(Icons.map),
+        backgroundColor: Colors.blue,
+      ),
     );
+    // return GoogleMap(
+    //   onMapCreated: _onMapCreated,
+    //   initialCameraPosition: CameraPosition(
+    //     target: _center,
+    //     zoom: 10,
+    //   ),
+    //   markers: _markers.values.toSet(),
+    // );
   }
 }
-
 
 class BodyWidget extends StatefulWidget {
   const BodyWidget({Key? key}) : super(key: key);
@@ -147,7 +203,6 @@ class BodyWidgetState extends State<BodyWidget> {
 
   @override
   Widget build(BuildContext context) {
-
     return Padding(
       padding: const EdgeInsets.all(32.0),
       child: Align(
@@ -164,9 +219,8 @@ class BodyWidgetState extends State<BodyWidget> {
                 },
               ),
               Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(serverResponse)
-              ),
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(serverResponse)),
             ],
           ),
         ),
@@ -177,8 +231,16 @@ class BodyWidgetState extends State<BodyWidget> {
   _makeGetRequest() async {
     final url = Uri.parse(_localhost());
     Response response = await get(url);
+    Map<String, dynamic> data = jsonDecode(response.body);
+    var location = data['data']['location'];
+    String name = location['name'];
+    var lat = location['lat'];
+    var lng = location['lng'];
+    print('name, ${name}!');
+    print('lat, ${lat}!');
+    print('lng, ${lng}!');
     setState(() {
-      serverResponse = response.body;
+      serverResponse = name + " " + lat.toString() + " " + lng.toString();
     });
   }
 
@@ -186,6 +248,6 @@ class BodyWidgetState extends State<BodyWidget> {
     if (Platform.isAndroid)
       return 'http://10.0.2.2:8000';
     else // for iOS simulator{}
-      return 'http://localhost:8000/graphql?query={getPost{id,title}}';
+      return 'http://localhost:8000/graphql?query={location{name,lat,lng}}';
   }
 }
