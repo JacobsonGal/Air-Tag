@@ -1,11 +1,14 @@
 import 'dart:ffi';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart';
 import 'dart:io';
 // import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'src/locations.dart' as locations;
+import 'dart:ui' as ui;
 
 void main() {
   runApp(MyApp());
@@ -24,10 +27,6 @@ class _MyAppState extends State<MyApp> {
   static const List<Widget> _widgetOptions = <Widget>[
     GMAP(),
     BodyWidget(),
-    // Text(
-    //   'Index 1: List',
-    //   style: optionStyle,
-    // ),
   ];
   void _onItemTapped(int index) {
     setState(() {
@@ -49,16 +48,15 @@ class _MyAppState extends State<MyApp> {
           child: _widgetOptions.elementAt(_selectedIndex),
         ),
         drawer: Drawer(
-          // Add a ListView to the drawer. This ensures the user can scroll
-          // through the options in the drawer if there isn't enough vertical
-          // space to fit everything.
           child: ListView(
-            // Important: Remove any padding from the ListView.
             padding: EdgeInsets.zero,
             children: <Widget>[
               DrawerHeader(
                 decoration: BoxDecoration(
                   color: Colors.blue,
+                  image:
+                      DecorationImage(image: AssetImage('assets/AirTag.png'),scale: 0.5),
+                  // image: DecorationImage(image: NetworkImage('data:image/jpeg;base64,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'));
                 ),
                 child: Text('AirTag'),
               ),
@@ -129,7 +127,22 @@ class _GMAPState extends State<GMAP> {
     _getAllTags();
   }
 
+  Future<Uint8List> getBytesFromAsset(String path, int width) async {
+    ByteData data = await rootBundle.load(path);
+    ui.Codec codec = await ui.instantiateImageCodec(data.buffer.asUint8List(),
+        targetWidth: width);
+    ui.FrameInfo fi = await codec.getNextFrame();
+    return (await fi.image.toByteData(format: ui.ImageByteFormat.png))!
+        .buffer
+        .asUint8List();
+  }
+
+
+
   _getAllTags() async {
+    final Uint8List markerIcon =
+        await getBytesFromAsset('assets/AirTag.png', 100);
+
     final url = Uri.parse(
         'http://localhost:8000/graphql?query={locations{id,name,address,lat,lng}}');
     var response = await get(url);
@@ -149,13 +162,14 @@ class _GMAPState extends State<GMAP> {
                 tag['lat'].toString() +
                 " | " +
                 tag['lng'].toString(),
+             
           ),
+          icon: BitmapDescriptor.fromBytes(markerIcon),
         );
         _markers[tag['name']] = marker;
       }
     });
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -175,7 +189,6 @@ class _GMAPState extends State<GMAP> {
           zoomControlsEnabled: true,
           zoomGesturesEnabled: true,
           buildingsEnabled: true,
-
         ),
       ),
       // floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
@@ -186,9 +199,7 @@ class _GMAPState extends State<GMAP> {
         },
         child: const Icon(Icons.settings),
         backgroundColor: Colors.blue,
-        
       ),
-    
     );
   }
 }
@@ -258,7 +269,7 @@ class BodyWidgetState extends State<BodyWidget> {
                   _deleteTag();
                 },
               ),
-                ElevatedButton(
+              ElevatedButton(
                 child: Text('Delete all tags'),
                 onPressed: () {
                   _deleteAllTag();
@@ -368,6 +379,7 @@ class BodyWidgetState extends State<BodyWidget> {
       locationsResponse = response.body;
     });
   }
+
   _deleteAllTag() async {
     final url = Uri.parse(
         'http://localhost:8000/graphql?query={deleteLocations{id,name,address,lat,lng}}');
